@@ -1106,6 +1106,8 @@ def _get_cpp_command_for_files(compile_action):
     compile_action.environmentVariables = {pair.key: pair.value for pair in getattr(compile_action, 'environmentVariables', [])}
     if 'PATH' not in compile_action.environmentVariables: # Bazel only adds if --incompatible_strict_action_env is passed--and otherwise inherits.
         compile_action.environmentVariables['PATH'] = os.environ['PATH']
+    if os.name == 'nt' and 'SystemRoot' not in compile_action.environmentVariables: # cl.exe can't create its temp files without SystemRoot, so every MSVC header probe fails with D8037 "cannot create temporary il file". Aquery omits it because only explicitly-set vars are listed (bazel#12852).
+        compile_action.environmentVariables['SystemRoot'] = os.environ['SystemRoot']
 
     # Patch command by platform, revealing any hidden arguments.
     compile_action.arguments = _apple_platform_patch(compile_action.arguments)
