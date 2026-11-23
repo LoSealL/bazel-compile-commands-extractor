@@ -267,7 +267,7 @@ def _get_headers_gcc(compile_action, source_path: str, action_key: str):
 
     # Strip output flags. Apple clang tries to do a full compile if you don't.
     header_cmd = (arg for arg in header_cmd
-        if arg != '-o' and not arg.endswith('.o'))
+        if arg != '-o' and not arg.endswith(('.o', '.obj')))
 
     # Strip sanitizer ignore lists...so they don't show up in the dependency list.
     # See https://clang.llvm.org/docs/SanitizerSpecialCaseList.html and https://github.com/hedronvision/bazel-compile-commands-extractor/issues/34 for more context.
@@ -1106,6 +1106,8 @@ def _get_cpp_command_for_files(compile_action):
     compile_action.environmentVariables = {pair.key: pair.value for pair in getattr(compile_action, 'environmentVariables', [])}
     if 'PATH' not in compile_action.environmentVariables: # Bazel only adds if --incompatible_strict_action_env is passed--and otherwise inherits.
         compile_action.environmentVariables['PATH'] = os.environ['PATH']
+    if os.name == 'nt' and 'SystemRoot' not in compile_action.environmentVariables: # cl.exe can't create temp files without it (D8037); aquery omits it (bazel#12852).
+        compile_action.environmentVariables['SystemRoot'] = os.environ['SystemRoot']
 
     # Patch command by platform, revealing any hidden arguments.
     compile_action.arguments = _apple_platform_patch(compile_action.arguments)
